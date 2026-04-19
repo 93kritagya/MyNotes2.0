@@ -862,7 +862,60 @@ document.addEventListener('drop',e=>{
 
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 
-boot();
+//boot();
+   // Start
+  bootstrap();
+  updateSyncStatusIdle();
+
+  /* ── Mobile tab switching ── */
+  function isMobile() { return window.innerWidth <= 600; }
+
+  function switchMobileTab(tab) {
+    if (!isMobile()) return;
+    const sidebar = document.getElementById('sidebar');
+    const editor  = document.getElementById('editor');
+    const tabNotes  = document.getElementById('tab-notes');
+    const tabEditor = document.getElementById('tab-editor');
+    if (tab === 'notes') {
+      sidebar.classList.remove('hidden-mobile');
+      editor.classList.remove('visible-mobile');
+      tabNotes.classList.add('active');
+      tabEditor.classList.remove('active');
+    } else {
+      sidebar.classList.add('hidden-mobile');
+      editor.classList.add('visible-mobile');
+      tabNotes.classList.remove('active');
+      tabEditor.classList.add('active');
+    }
+  }
+  window.switchMobileTab = switchMobileTab;
+
+  // Auto-switch to editor when a note is tapped on mobile
+  const _origRenderList = renderList;
+  document.getElementById('note-list').addEventListener('click', e => {
+    if (isMobile() && e.target.closest('.note-item')) {
+      setTimeout(() => switchMobileTab('editor'), 50);
+    }
+  });
+
+  // Auto-switch to editor when New Note is tapped on mobile
+  const origNewBtn = document.getElementById('new-btn').onclick;
+  document.getElementById('new-btn').onclick = function() {
+    if (origNewBtn) origNewBtn.call(this);
+    if (isMobile()) setTimeout(() => switchMobileTab('editor'), 80);
+  };
+
+  // Initialize mobile layout on load
+  if (isMobile()) {
+    switchMobileTab('notes');
+  }
+  window.addEventListener('resize', () => {
+    if (!isMobile()) {
+      // Reset transforms on desktop
+      document.getElementById('sidebar').classList.remove('hidden-mobile');
+      document.getElementById('editor').classList.remove('visible-mobile');
+    }
+      });
 </script>
 </body>
 </html>
