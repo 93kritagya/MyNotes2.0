@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>My Notes</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f7f6f3;--bg-tertiary:#f0efe9;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#9a9990;
+  --border-light:rgba(0,0,0,0.08);--border-medium:rgba(0,0,0,0.14);
+  --accent:#534AB7;--accent-light:#EEEDFE;--accent-mid:#AFA9EC;
+  --green:#1a7f4b;--radius-md:8px;--radius-lg:12px;
+  --font:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;
+  --editor-font-size:14px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg-primary:#1c1c1a;--bg-secondary:#242422;--bg-tertiary:#2c2c2a;
+  --text-primary:#f0efe9;--text-secondary:#a8a79f;--text-tertiary:#6a6960;
+  --border-light:rgba(255,255,255,0.07);--border-medium:rgba(255,255,255,0.12);
+  --accent:#7F77DD;--accent-light:#26215C;--accent-mid:#3C3489;--green:#4ade80;
+}}
+html,body{height:100%;margin:0;padding:0;overflow:hidden}
+body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-primary);display:flex;flex-direction:column;height:100vh}
+
+/* ── Topbar ── */
+#topbar{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--bg-secondary);border-bottom:0.5px solid var(--border-medium);flex-shrink:0;overflow-x:auto}
+#file-status{font-size:11px;color:var(--text-tertiary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:60px}
+#sync-status{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--bg-primary);border:0.5px solid var(--border-medium);color:var(--text-tertiary);white-space:nowrap}
+#sync-status.syncing{color:var(--accent);border-color:var(--accent-mid)}
+#sync-status.ok{color:var(--green)}
+#sync-status.err{color:#A32D2D}
+.tb-btn{font-size:11px;padding:4px 9px;border-radius:var(--radius-md);border:0.5px solid var(--border-medium);background:var(--bg-primary);color:var(--text-secondary);cursor:pointer;transition:all 0.15s;font-family:var(--font);white-space:nowrap;flex-shrink:0}
+.tb-btn:hover{background:var(--bg-tertiary);color:var(--text-primary)}
+.tb-btn.accent{background:var(--accent);border-color:var(--accent);color:#EEEDFE}
+.tb-btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.tb-btn:disabled{opacity:0.4;cursor:not-allowed}
+#load-data-input,#import-txt-input{display:none}
+
+/* ── Layout ── */
+#app{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+#sidebar{width:260px;min-width:260px;border-right:0.5px solid var(--border-light);display:flex;flex-direction:column;background:var(--bg-secondary)}
+#sidebar-header{padding:12px 12px 6px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+#sidebar-header h1{font-size:14px;font-weight:600;letter-spacing:-0.3px;flex:1}
+#font-size-wrap{display:flex;align-items:center;gap:4px;padding:0 12px 6px;flex-shrink:0}
+#font-size-wrap label{font-size:10px;color:var(--text-tertiary);white-space:nowrap}
+#font-size-slider{flex:1;height:3px;accent-color:var(--accent)}
+#font-size-val{font-size:10px;color:var(--text-tertiary);min-width:28px}
+#search-wrap{padding:0 8px 6px;flex-shrink:0}
+#search{width:100%;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);outline:none;font-family:var(--font);transition:border-color 0.15s}
+#search:focus{border-color:var(--accent)}
+#search::placeholder{color:var(--text-tertiary)}
+
+/* ── Folder nav ── */
+#folder-nav{padding:0 8px 4px;flex-shrink:0}
+#folder-nav-inner{display:flex;flex-wrap:wrap;gap:3px}
+.folder-btn{font-size:10px;padding:2px 8px;border-radius:99px;border:0.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font);transition:all 0.12s;display:flex;align-items:center;gap:3px}
+.folder-btn:hover{background:var(--bg-primary)}
+.folder-btn.active{background:var(--accent);border-color:var(--accent);color:#EEEDFE}
+.folder-btn .fold-icon{font-size:11px}
+#add-folder-btn{font-size:10px;padding:2px 7px;border-radius:99px;border:0.5px dashed var(--border-medium);background:transparent;color:var(--text-tertiary);cursor:pointer;font-family:var(--font);transition:all 0.12s}
+#add-folder-btn:hover{color:var(--accent);border-color:var(--accent-mid)}
+
+/* ── Tag filter ── */
+#tag-list{padding:0 8px 5px;display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0}
+.tag-btn{font-size:10px;padding:2px 7px;border-radius:99px;border:0.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font);transition:all 0.12s}
+.tag-btn:hover{background:var(--bg-primary)}
+.tag-btn.active{background:var(--accent);border-color:var(--accent);color:#EEEDFE}
+
+/* ── Note list ── */
+#note-list{flex:1;overflow-y:auto;padding:3px 5px}
+#note-list::-webkit-scrollbar{width:3px}
+#note-list::-webkit-scrollbar-thumb{background:var(--border-medium);border-radius:3px}
+.note-item{padding:7px 9px;border-radius:var(--radius-md);cursor:pointer;margin-bottom:2px;border:0.5px solid transparent;transition:background 0.1s;position:relative}
+.note-item:hover{background:var(--bg-primary)}
+.note-item.active{background:var(--bg-primary);border-color:var(--border-medium)}
+.note-item-cover{width:100%;height:4px;border-radius:3px 3px 0 0;margin-bottom:5px;display:none}
+.note-item-cover.visible{display:block}
+.note-item-top{display:flex;align-items:center;gap:5px}
+.note-pin-icon{font-size:11px;flex-shrink:0}
+.note-item-title{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.note-item-preview{font-size:10px;color:var(--text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-item-meta{display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.note-tag-badge{font-size:10px;padding:1px 5px;border-radius:99px}
+.note-date{font-size:10px;color:var(--text-tertiary)}
+.note-folder-badge{font-size:10px;color:var(--text-tertiary)}
+.no-notes{padding:16px;text-align:center;font-size:11px;color:var(--text-tertiary)}
+
+#bottom-actions{padding:6px;display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+#new-btn,#import-txt-btn{padding:6px;font-size:11px;border-radius:var(--radius-md);border:0.5px dashed var(--border-medium);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;text-align:center;width:100%;font-family:var(--font)}
+#new-btn:hover{background:var(--bg-primary);color:var(--text-primary)}
+#import-txt-btn{border-color:var(--accent-mid);color:var(--accent)}
+#import-txt-btn:hover{background:var(--accent-light)}
+
+/* ── Editor ── */
+#editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#editor-toolbar{padding:6px 12px;border-bottom:0.5px solid var(--border-light);display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-primary)}
+#title-input{flex:1;font-size:15px;font-weight:600;border:none;outline:none;background:transparent;color:var(--text-primary);min-width:100px;font-family:var(--font)}
+#title-input::placeholder{color:var(--text-tertiary);font-weight:400}
+
+/* color/emoji picker row */
+#note-meta-row{display:flex;align-items:center;gap:6px;padding:4px 12px;border-bottom:0.5px solid var(--border-light);flex-shrink:0;background:var(--bg-primary);flex-wrap:wrap}
+#note-meta-row label{font-size:10px;color:var(--text-tertiary)}
+#note-color-picker{display:flex;gap:4px;align-items:center}
+.color-swatch{width:16px;height:16px;border-radius:50%;cursor:pointer;border:1.5px solid transparent;transition:transform 0.1s;flex-shrink:0}
+.color-swatch:hover{transform:scale(1.2)}
+.color-swatch.selected{border-color:var(--text-primary)}
+.color-swatch.none{background:transparent;border:1.5px dashed var(--border-medium)}
+#note-emoji-input{width:44px;padding:2px 4px;font-size:14px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);outline:none;font-family:var(--font);text-align:center}
+#note-folder-select{font-size:11px;padding:3px 6px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);outline:none;cursor:pointer;font-family:var(--font)}
+#note-tag-select{font-size:11px;padding:3px 6px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);outline:none;cursor:pointer;font-family:var(--font)}
+#pin-btn{font-size:11px;padding:3px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-medium);background:transparent;color:var(--text-secondary);cursor:pointer;font-family:var(--font);transition:all 0.12s}
+#pin-btn.pinned{background:#fef3c7;border-color:#f59e0b;color:#92400e}
+#save-indicator{font-size:10px;color:var(--text-tertiary);min-width:60px}
+#delete-btn{font-size:11px;padding:3px 8px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;font-family:var(--font)}
+#delete-btn:hover{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+
+/* ── Markdown toolbar ── */
+#md-toolbar{padding:4px 12px;border-bottom:0.5px solid var(--border-light);background:var(--bg-secondary);display:flex;gap:3px;align-items:center;flex-wrap:wrap;flex-shrink:0}
+.fmt-btn{font-size:11px;padding:2px 7px;border-radius:5px;border:0.5px solid var(--border-medium);background:var(--bg-primary);color:var(--text-secondary);cursor:pointer;font-family:var(--font);transition:all 0.1s;font-weight:500}
+.fmt-btn:hover{background:var(--accent-light);color:var(--accent)}
+.fmt-sep{width:0.5px;height:14px;background:var(--border-medium);margin:0 2px}
+
+/* ── Tab bar ── */
+#tab-bar{padding:3px 12px 0;background:var(--bg-primary);display:flex;flex-shrink:0}
+.tab-btn{font-size:11px;padding:4px 12px;border:none;background:transparent;color:var(--text-tertiary);cursor:pointer;font-family:var(--font);border-bottom:2px solid transparent;transition:all 0.12s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── Editor content ── */
+#editor-content{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#body-input{flex:1;padding:16px 24px;font-size:var(--editor-font-size);line-height:1.85;border:none;outline:none;resize:none;background:transparent;color:var(--text-primary);font-family:var(--font)}
+#body-input::placeholder{color:var(--text-tertiary)}
+#preview-area{flex:1;overflow-y:auto;padding:16px 24px;display:none;font-size:var(--editor-font-size)}
+#preview-area.visible{display:block}
+#preview-area h1{font-size:22px;font-weight:700;margin:0 0 12px}
+#preview-area h2{font-size:17px;font-weight:600;margin:14px 0 7px}
+#preview-area h3{font-size:14px;font-weight:600;margin:12px 0 5px}
+#preview-area p{margin:0 0 9px;line-height:1.8}
+#preview-area ul,#preview-area ol{margin:0 0 9px 20px}
+#preview-area li{margin-bottom:3px;line-height:1.7}
+#preview-area code{font-family:'Courier New',monospace;background:var(--bg-tertiary);padding:1px 5px;border-radius:4px;font-size:12px}
+#preview-area pre{background:var(--bg-tertiary);padding:12px;border-radius:8px;overflow-x:auto;margin:0 0 10px}
+#preview-area pre code{background:none;padding:0}
+#preview-area blockquote{border-left:3px solid var(--accent-mid);padding-left:12px;color:var(--text-secondary);margin:0 0 10px}
+#preview-area strong{font-weight:600}
+#preview-area em{font-style:italic}
+#preview-area hr{border:none;border-top:0.5px solid var(--border-medium);margin:14px 0}
+#preview-area a{color:var(--accent)}
+#preview-area table{border-collapse:collapse;width:100%;margin:0 0 10px;font-size:13px}
+#preview-area th,#preview-area td{border:0.5px solid var(--border-medium);padding:6px 10px}
+#preview-area th{background:var(--bg-secondary);font-weight:600}
+#preview-area input[type=checkbox]{margin-right:5px}
+
+/* ── Empty state ── */
+#empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-tertiary);gap:8px;user-select:none}
+#empty-state svg{opacity:0.2}
+#empty-state p{font-size:13px}
+#empty-state .sub{font-size:11px}
+
+/* ── Folder modal ── */
+#folder-modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center}
+#folder-modal-wrap.open{display:flex}
+#folder-modal{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border-medium);padding:20px 24px;width:340px;max-width:95vw;display:flex;flex-direction:column;gap:10px}
+#folder-modal h2{font-size:14px;font-weight:600}
+#folder-modal input{width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);outline:none;font-family:var(--font)}
+#folder-modal input:focus{border-color:var(--accent)}
+#folder-list{display:flex;flex-direction:column;gap:3px;max-height:160px;overflow-y:auto}
+.folder-list-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--radius-md);background:var(--bg-secondary);font-size:12px}
+.folder-list-item span{flex:1}
+.folder-del-btn{font-size:10px;color:#A32D2D;background:none;border:none;cursor:pointer;padding:2px 4px}
+#folder-modal-btns{display:flex;gap:6px;justify-content:flex-end}
+
+/* ── GitHub modal ── */
+#gh-modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:400;align-items:center;justify-content:center}
+#gh-modal-wrap.open{display:flex}
+#gh-modal{background:var(--bg-primary);border-radius:var(--radius-lg);border:0.5px solid var(--border-medium);padding:20px 24px;width:420px;max-width:95vw;display:flex;flex-direction:column;gap:10px}
+#gh-modal h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+#gh-modal label{font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px}
+#gh-modal input{width:100%;padding:6px 9px;font-size:12px;border:0.5px solid var(--border-medium);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);outline:none;font-family:var(--font)}
+#gh-modal input:focus{border-color:var(--accent)}
+.gh-row{display:flex;gap:8px}
+.gh-row>div{flex:1}
+#gh-modal-btns{display:flex;gap:6px;justify-content:flex-end}
+.gh-note{font-size:10px;color:var(--text-tertiary);background:var(--bg-secondary);padding:7px 9px;border-radius:var(--radius-md);line-height:1.6}
+.gh-note a{color:var(--accent);text-decoration:none}
+#gh-conn-status{font-size:11px;min-height:14px}
+#gh-conn-status.ok{color:var(--green)}
+#gh-conn-status.err{color:#A32D2D}
+
+/* ── Drop overlay ── */
+#drop-overlay{display:none;position:fixed;inset:0;background:rgba(83,74,183,0.08);border:2px dashed var(--accent);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:10px;pointer-events:none}
+#drop-overlay.visible{display:flex}
+#drop-overlay p{font-size:15px;font-weight:500;color:var(--accent)}
+
+/* ── Toast & sync bar ── */
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--accent);color:#EEEDFE;font-size:12px;padding:6px 14px;border-radius:99px;opacity:0;transition:all 0.2s;pointer-events:none;white-space:nowrap;z-index:600;font-family:var(--font)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#sync-bar{position:fixed;bottom:0;left:0;right:0;height:2px;z-index:600}
+#sync-bar-fill{height:100%;background:var(--accent);width:0%;transition:width 0.1s linear;opacity:0}
+#sync-bar-fill.active{opacity:1}
+
+/* Note cover color strip in editor */
+#editor-cover-strip{height:5px;flex-shrink:0;transition:background 0.2s}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div id="topbar">
+  <span id="file-status">💾 Browser memory</span>
+  <span id="sync-status">⏸ No sync</span>
+  <button class="tb-btn" id="load-data-btn">📂 Load</button>
+  <button class="tb-btn accent" id="save-data-btn">💾 Save JSON</button>
+  <button class="tb-btn green" id="gh-push-btn" disabled>⬆ Push</button>
+  <button class="tb-btn" id="gh-pull-btn" disabled>⬇ Pull</button>
+  <button class="tb-btn" id="gh-settings-btn">⚙ GitHub</button>
+  <input id="load-data-input" type="file" accept=".json"/>
+</div>
+
+<div id="app">
+  <div id="drop-overlay">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:#534AB7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <p id="drop-label">Drop to import</p>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h1>My Notes</h1>
+      <button class="tb-btn" id="manage-folders-btn" title="Manage folders" style="padding:3px 7px">📁</button>
+    </div>
+
+    <!-- Font size slider -->
+    <div id="font-size-wrap">
+      <label>Font</label>
+      <input type="range" id="font-size-slider" min="11" max="22" value="14" />
+      <span id="font-size-val">14px</span>
+    </div>
+
+    <!-- Search -->
+    <div id="search-wrap"><input id="search" type="text" placeholder="Search notes…"/></div>
+
+    <!-- Folder nav -->
+    <div id="folder-nav"><div id="folder-nav-inner"></div></div>
+
+    <!-- Tag filter -->
+    <div id="tag-list"></div>
+
+    <!-- Note list -->
+    <div id="note-list"></div>
+
+    <div id="bottom-actions">
+      <button id="new-btn">+ New note</button>
+      <button id="import-txt-btn">↑ Import text file</button>
+      <input id="import-txt-input" type="file" multiple accept=".txt,.md,.csv,.log,.json,.py,.js,.ts,.css,.yml,.yaml,.sh,.java,.c,.cpp,.rs,.go,.rb,.php"/>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div id="editor">
+    <!-- Cover color strip -->
+    <div id="editor-cover-strip"></div>
+
+    <!-- Title toolbar -->
+    <div id="editor-toolbar" style="display:none">
+      <input id="title-input" type="text" placeholder="Note title…"/>
+      <span id="save-indicator"></span>
+      <button id="delete-btn">Delete</button>
+    </div>
+
+    <!-- Note meta row: color, emoji, folder, tag, pin -->
+    <div id="note-meta-row" style="display:none">
+      <label>Color:</label>
+      <div id="note-color-picker"></div>
+      <label style="margin-left:6px">Icon:</label>
+      <input id="note-emoji-input" type="text" maxlength="2" placeholder="📝"/>
+      <label style="margin-left:6px">Folder:</label>
+      <select id="note-folder-select"><option value="">None</option></select>
+      <label style="margin-left:6px">Tag:</label>
+      <select id="note-tag-select">
+        <option value="">No tag</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="ideas">Ideas</option>
+        <option value="todo">Todo</option>
+      </select>
+      <button id="pin-btn">📌 Pin</button>
+    </div>
+
+    <!-- Markdown toolbar -->
+    <div id="md-toolbar">
+      <button class="fmt-btn" data-fmt="bold"><b>B</b></button>
+      <button class="fmt-btn" data-fmt="italic"><i>I</i></button>
+      <button class="fmt-btn" data-fmt="strike"><s>S</s></button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-fmt="h1">H1</button>
+      <button class="fmt-btn" data-fmt="h2">H2</button>
+      <button class="fmt-btn" data-fmt="h3">H3</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-fmt="ul">• List</button>
+      <button class="fmt-btn" data-fmt="ol">1. List</button>
+      <button class="fmt-btn" data-fmt="task">☑ Task</button>
+      <button class="fmt-btn" data-fmt="quote">❝ Quote</button>
+      <button class="fmt-btn" data-fmt="code">` Code</button>
+      <button class="fmt-btn" data-fmt="codeblock">⬜ Block</button>
+      <button class="fmt-btn" data-fmt="hr">— HR</button>
+      <button class="fmt-btn" data-fmt="link">🔗 Link</button>
+      <button class="fmt-btn" data-fmt="table">⊞ Table</button>
+    </div>
+
+    <!-- Write / Preview tabs -->
+    <div id="tab-bar">
+      <button class="tab-btn active" id="tab-write">✏️ Write</button>
+      <button class="tab-btn" id="tab-preview">👁 Preview</button>
+    </div>
+
+    <!-- Content -->
+    <div id="editor-content">
+      <div id="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <p>Select a note or create a new one</p>
+        <p class="sub">Supports Markdown · Folders · Pinning · Color themes</p>
+      </div>
+      <textarea id="body-input" placeholder="Start writing… (Markdown supported)" style="display:none"></textarea>
+      <div id="preview-area"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Folder manager modal -->
+<div id="folder-modal-wrap">
+  <div id="folder-modal">
+    <h2>📁 Manage Folders</h2>
+    <div style="display:flex;gap:6px">
+      <input id="new-folder-input" type="text" placeholder="New folder name…" style="flex:1"/>
+      <button class="tb-btn accent" id="create-folder-btn">Add</button>
+    </div>
+    <div id="folder-list"></div>
+    <div id="folder-modal-btns">
+      <button class="tb-btn" id="folder-modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub modal -->
+<div id="gh-modal-wrap">
+  <div id="gh-modal">
+    <h2>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub Sync Setup
+    </h2>
+    <div><label>Personal Access Token</label><input id="gh-token" type="password" placeholder="ghp_…"/></div>
+    <div class="gh-row">
+      <div><label>Username</label><input id="gh-user" type="text" placeholder="username"/></div>
+      <div><label>Repository</label><input id="gh-repo" type="text" placeholder="my-notes"/></div>
+    </div>
+    <div><label>File path (.json)</label><input id="gh-path" type="text" placeholder="notes-data.json"/></div>
+    <div class="gh-note">🔑 <a href="https://github.com/settings/tokens/new" target="_blank">Get token</a> → No expiry → tick <strong>repo</strong> → Generate. Auto-pulls on open, auto-pushes every 5s while editing.</div>
+    <div id="gh-conn-status"></div>
+    <div id="gh-modal-btns">
+      <button class="tb-btn" id="gh-test-btn">Test</button>
+      <button class="tb-btn" id="gh-cancel-btn">Cancel</button>
+      <button class="tb-btn accent" id="gh-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="sync-bar"><div id="sync-bar-fill"></div></div>
+
+<script>
+/* ══════════════════════════════════════════
+   CONSTANTS & STATE
+══════════════════════════════════════════ */
+const LS_NOTES   = 'my-notes-v5';
+const LS_GH      = 'my-notes-github-v2';
+const LS_FOLDERS = 'my-notes-folders-v1';
+const LS_FONT    = 'my-notes-fontsize';
+const AUTO_SYNC  = 5000;
+
+const NOTE_COLORS = [
+  {name:'none',  hex:''},
+  {name:'red',   hex:'#ef4444'},
+  {name:'orange',hex:'#f97316'},
+  {name:'amber', hex:'#f59e0b'},
+  {name:'green', hex:'#22c55e'},
+  {name:'teal',  hex:'#14b8a6'},
+  {name:'blue',  hex:'#3b82f6'},
+  {name:'purple',hex:'#8b5cf6'},
+  {name:'pink',  hex:'#ec4899'},
+  {name:'gray',  hex:'#6b7280'},
+];
+
+const TAG_COLORS = {
+  work:    {bg:'#dbeafe',color:'#1e40af'},
+  personal:{bg:'#d1fae5',color:'#065f46'},
+  ideas:   {bg:'#ede9fe',color:'#4c1d95'},
+  todo:    {bg:'#fef3c7',color:'#78350f'},
+};
+
+let notes       = [];
+let folders     = JSON.parse(localStorage.getItem(LS_FOLDERS)||'[]') || [];
+let activeId    = null;
+let filterTag   = '';
+let filterFolder= '';  // '' = All
+let isDirty     = false;
+let loadedFrom  = null;
+let ghConfig    = JSON.parse(localStorage.getItem(LS_GH)||'null') || {token:'',user:'',repo:'',path:'notes-data.json'};
+let autoSyncTimer=null, syncBarTimer=null, syncBarProg=0, isSyncing=false;
+let isPreview   = false;
+
+/* ── Font size ── */
+const savedFont = parseInt(localStorage.getItem(LS_FONT)||'14');
+document.documentElement.style.setProperty('--editor-font-size', savedFont+'px');
+document.getElementById('font-size-slider').value = savedFont;
+document.getElementById('font-size-val').textContent = savedFont+'px';
+
+document.getElementById('font-size-slider').addEventListener('input', e => {
+  const sz = e.target.value;
+  document.documentElement.style.setProperty('--editor-font-size', sz+'px');
+  document.getElementById('font-size-val').textContent = sz+'px';
+  localStorage.setItem(LS_FONT, sz);
+});
+
+/* ══════════════════════════════════════════
+   JSON HELPERS
+══════════════════════════════════════════ */
+function notesToJSON(arr) {
+  return JSON.stringify({version:4, exported:new Date().toISOString(), folders, notes:arr}, null, 2);
+}
+function jsonToData(text) {
+  const obj = JSON.parse(text);
+  if (obj && Array.isArray(obj.notes)) {
+    if (Array.isArray(obj.folders)) folders = obj.folders;
+    return obj.notes;
+  }
+  if (Array.isArray(obj)) return obj;
+  throw new Error('Invalid format');
+}
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+async function bootstrap() {
+  const s = localStorage.getItem(LS_NOTES);
+  if (s) { try { notes = JSON.parse(s); } catch { notes = defaultNotes(); } }
+  else { notes = defaultNotes(); }
+  activeId = notes[0]?.id || null;
+  renderAll(); updateStatus();
+  if (ghIsConfigured()) {
+    setSyncStatus('syncing','⟳ Pulling…');
+    try { await ghPullSilent(); setSyncStatus('ok','✅ Pulled'); setTimeout(syncStatusIdle,3000); }
+    catch { setSyncStatus('err','❌ Pull failed'); setTimeout(syncStatusIdle,4000); }
+  }
+}
+
+function defaultNotes() {
+  return [
+    {id:1, title:'Welcome — What\'s New', body:'# Welcome to My Notes\n\nHere\'s everything that\'s been added:\n\n## ✏️ Markdown Editor\nWrite with **bold**, *italic*, ~~strikethrough~~, `code`, and more.\nUse the toolbar above or type markdown directly.\n\n## 👁 Live Preview\nClick the **Preview** tab to see rendered markdown.\n\n## 📁 Folders\nClick **📁** in the sidebar to create folders.\nAssign notes to folders using the **Folder** dropdown.\n\n## 📌 Pin Notes\nClick **📌 Pin** on any note to keep it at the top of the list.\n\n## 🎨 Note Colors & Icons\nGive each note a **color** (strip at the top) and an **emoji icon** shown in the list.\n\n## 🔤 Font Size\nUse the **Font slider** in the sidebar to adjust text size.\n\n## 🔄 GitHub Sync\nAll features sync to GitHub automatically every 5 seconds while editing.',
+     tag:'personal', folder:'', pinned:true, color:'#8b5cf6', emoji:'👋', updated:Date.now()-60000},
+    {id:2, title:'Markdown Cheatsheet', body:'# Markdown Cheatsheet\n\n## Text\n**bold** | *italic* | ~~strikethrough~~ | `inline code`\n\n## Headings\n# H1  ## H2  ### H3\n\n## Lists\n- Item one\n- Item two\n  - Nested\n\n1. First\n2. Second\n\n## Tasks\n- [x] Done task\n- [ ] Pending task\n\n## Quote\n> This is a blockquote\n\n## Code block\n```\nconst x = 42;\nconsole.log(x);\n```\n\n## Table\n| Name | Value |\n|------|-------|\n| One  | 1     |\n| Two  | 2     |\n\n## Link\n[GitHub](https://github.com)\n\n---\n*End of cheatsheet*',
+     tag:'ideas', folder:'', pinned:false, color:'#3b82f6', emoji:'📋', updated:Date.now()-120000},
+    {id:3, title:'Ideas for the weekend', body:'Go for a long walk.\nTry that new coffee place.\nFinish the book on the shelf.', tag:'ideas', folder:'', pinned:false, color:'', emoji:'', updated:Date.now()-300000},
+  ];
+}
+
+const persist = () => { localStorage.setItem(LS_NOTES, JSON.stringify(notes)); isDirty=true; updateStatus(); };
+const saveFolders = () => localStorage.setItem(LS_FOLDERS, JSON.stringify(folders));
+const ghIsConfigured = () => !!(ghConfig.token && ghConfig.user && ghConfig.repo && ghConfig.path);
+
+function updateStatus() {
+  document.getElementById('file-status').textContent =
+    isDirty ? `⚠️ Unsaved${loadedFrom?' · '+loadedFrom:''}` : loadedFrom ? `✅ ${loadedFrom}` : '💾 Browser memory';
+  document.getElementById('gh-push-btn').disabled = !ghIsConfigured();
+  document.getElementById('gh-pull-btn').disabled = !ghIsConfigured();
+}
+function syncStatusIdle() {
+  setSyncStatus(ghIsConfigured()?'':'', ghIsConfigured()?'🔄 Auto-sync on':'⏸ No sync');
+}
+function setSyncStatus(cls,msg) {
+  const el = document.getElementById('sync-status');
+  el.className = cls; el.textContent = msg;
+}
+const fmt = ts => new Date(ts).toLocaleDateString(undefined,{day:'numeric',month:'short'});
+function showToast(msg,dur=2800) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+/* ══════════════════════════════════════════
+   MARKDOWN PARSER (lightweight)
+══════════════════════════════════════════ */
+function parseMarkdown(md) {
+  let html = esc(md);
+  // Fenced code blocks
+  html = html.replace(/```([^`]*?)```/gs, (_,c)=>`<pre><code>${c.trim()}</code></pre>`);
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, (_,c)=>`<code>${c}</code>`);
+  // Headers
+  html = html.replace(/^### (.+)$/gm, (_,t)=>`<h3>${t}</h3>`);
+  html = html.replace(/^## (.+)$/gm,  (_,t)=>`<h2>${t}</h2>`);
+  html = html.replace(/^# (.+)$/gm,   (_,t)=>`<h1>${t}</h1>`);
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, (_,t)=>`<blockquote>${t}</blockquote>`);
+  // HR
+  html = html.replace(/^---$/gm,'<hr/>');
+  // Bold, italic, strikethrough
+  html = html.replace(/\*\*(.+?)\*\*/g, (_,t)=>`<strong>${t}</strong>`);
+  html = html.replace(/\*(.+?)\*/g,     (_,t)=>`<em>${t}</em>`);
+  html = html.replace(/~~(.+?)~~/g,     (_,t)=>`<s>${t}</s>`);
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_,t,u)=>`<a href="${u}" target="_blank">${t}</a>`);
+  // Task lists
+  html = html.replace(/^- \[x\] (.+)$/gm, (_,t)=>`<li><input type="checkbox" checked disabled/> ${t}</li>`);
+  html = html.replace(/^- \[ \] (.+)$/gm, (_,t)=>`<li><input type="checkbox" disabled/> ${t}</li>`);
+  // Unordered lists
+  html = html.replace(/((?:^- .+\n?)+)/gm, blk => {
+    const items = blk.trim().split('\n').map(l=>l.replace(/^- /,''));
+    return '<ul>'+items.map(i=>`<li>${i}</li>`).join('')+'</ul>';
+  });
+  // Ordered lists
+  html = html.replace(/((?:^\d+\. .+\n?)+)/gm, blk => {
+    const items = blk.trim().split('\n').map(l=>l.replace(/^\d+\. /,''));
+    return '<ol>'+items.map(i=>`<li>${i}</li>`).join('')+'</ol>';
+  });
+  // Tables
+  html = html.replace(/((?:^\|.+\|\n?)+)/gm, blk => {
+    const rows = blk.trim().split('\n').filter(r=>!/^\|[-|: ]+\|$/.test(r));
+    if (!rows.length) return blk;
+    const header = rows[0].split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
+    const body   = rows.slice(1).map(r=>'<tr>'+r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('')+'</tr>').join('');
+    return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+  });
+  // Paragraphs (lines not already in block tags)
+  html = html.replace(/^(?!<[hou]|<bl|<pre|<hr|<li|<ta)(.+)$/gm, '<p>$1</p>');
+  // Clean double blank lines
+  html = html.replace(/(<\/p>\s*){2,}/g,'</p>');
+  return html;
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return s.replace(/"/g,'&quot;'); }
+
+/* ══════════════════════════════════════════
+   MARKDOWN FORMAT BUTTONS
+══════════════════════════════════════════ */
+document.querySelectorAll('.fmt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ta = document.getElementById('body-input');
+    const fmt = btn.dataset.fmt;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start,end);
+    let ins='', caret=null;
+    switch(fmt) {
+      case 'bold':       ins=`**${sel||'bold text'}**`; break;
+      case 'italic':     ins=`*${sel||'italic text'}*`; break;
+      case 'strike':     ins=`~~${sel||'text'}~~`; break;
+      case 'h1':         ins=`# ${sel||'Heading 1'}`; break;
+      case 'h2':         ins=`## ${sel||'Heading 2'}`; break;
+      case 'h3':         ins=`### ${sel||'Heading 3'}`; break;
+      case 'ul':         ins=`- ${sel||'item'}`; break;
+      case 'ol':         ins=`1. ${sel||'item'}`; break;
+      case 'task':       ins=`- [ ] ${sel||'task'}`; break;
+      case 'quote':      ins=`> ${sel||'quote'}`; break;
+      case 'code':       ins=`\`${sel||'code'}\``; break;
+      case 'codeblock':  ins=`\`\`\`\n${sel||'code here'}\n\`\`\``; break;
+      case 'hr':         ins=`\n---\n`; break;
+      case 'link':       ins=`[${sel||'link text'}](https://)`; caret=ins.length-1; break;
+      case 'table':      ins=`| Col1 | Col2 |\n|------|------|\n| A    | B    |`; break;
+    }
+    ta.focus();
+    ta.setRangeText(ins, start, end, 'end');
+    if (caret!==null) { ta.selectionStart=ta.selectionEnd=start+caret; }
+    onEdit();
+  });
+});
+
+/* ── Tabs ── */
+document.getElementById('tab-write').onclick = () => {
+  isPreview=false;
+  document.getElementById('tab-write').classList.add('active');
+  document.getElementById('tab-preview').classList.remove('active');
+  document.getElementById('body-input').style.display='block';
+  document.getElementById('preview-area').classList.remove('visible');
+};
+document.getElementById('tab-preview').onclick = () => {
+  isPreview=true;
+  document.getElementById('tab-preview').classList.add('active');
+  document.getElementById('tab-write').classList.remove('active');
+  document.getElementById('body-input').style.display='none';
+  const note = notes.find(n=>n.id===activeId);
+  document.getElementById('preview-area').innerHTML = note ? parseMarkdown(note.body||'') : '';
+  document.getElementById('preview-area').classList.add('visible');
+};
+
+/* ══════════════════════════════════════════
+   FOLDER MANAGEMENT
+══════════════════════════════════════════ */
+function renderFolderNav() {
+  const wrap = document.getElementById('folder-nav-inner');
+  wrap.innerHTML='';
+  // All button
+  const all = document.createElement('button');
+  all.className='folder-btn'+(filterFolder===''?' active':'');
+  all.innerHTML='<span class="fold-icon">📋</span> All';
+  all.onclick=()=>{filterFolder='';renderAll();};
+  wrap.appendChild(all);
+  // Folder buttons
+  folders.forEach(f=>{
+    const b=document.createElement('button');
+    b.className='folder-btn'+(filterFolder===f.id?' active':'');
+    b.innerHTML=`<span class="fold-icon">${f.icon||'📁'}</span> ${escAttr(f.name)}`;
+    b.onclick=()=>{filterFolder=f.id;renderAll();};
+    wrap.appendChild(b);
+  });
+  // Add button
+  const add=document.createElement('button');
+  add.id='add-folder-btn'; add.textContent='+ Folder';
+  add.onclick=openFolderModal;
+  wrap.appendChild(add);
+  // Update folder selects in editor
+  updateFolderSelects();
+}
+
+function updateFolderSelects() {
+  const sel = document.getElementById('note-folder-select');
+  const cur = sel.value;
+  sel.innerHTML='<option value="">None</option>';
+  folders.forEach(f=>{ const o=document.createElement('option'); o.value=f.id; o.textContent=f.name; sel.appendChild(o); });
+  sel.value = cur;
+}
+
+function openFolderModal() {
+  renderFolderList();
+  document.getElementById('folder-modal-wrap').classList.add('open');
+}
+function closeFolderModal() { document.getElementById('folder-modal-wrap').classList.remove('open'); }
+
+function renderFolderList() {
+  const list = document.getElementById('folder-list');
+  list.innerHTML='';
+  if (!folders.length) { list.innerHTML='<div style="font-size:11px;color:var(--text-tertiary);padding:6px">No folders yet</div>'; return; }
+  folders.forEach(f=>{
+    const div=document.createElement('div'); div.className='folder-list-item';
+    div.innerHTML=`<span>${f.icon||'📁'} ${esc(f.name)}</span>`;
+    const del=document.createElement('button'); del.className='folder-del-btn'; del.textContent='✕';
+    del.onclick=()=>{ folders=folders.filter(x=>x.id!==f.id); notes.forEach(n=>{if(n.folder===f.id)n.folder='';}); saveFolders(); persist(); renderFolderList(); renderFolderNav(); renderList(); };
+    div.appendChild(del); list.appendChild(div);
+  });
+}
+
+document.getElementById('manage-folders-btn').onclick = openFolderModal;
+document.getElementById('folder-modal-close').onclick  = closeFolderModal;
+document.getElementById('folder-modal-wrap').onclick   = e=>{ if(e.target===document.getElementById('folder-modal-wrap'))closeFolderModal(); };
+document.getElementById('create-folder-btn').onclick   = () => {
+  const inp = document.getElementById('new-folder-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  folders.push({id:'f_'+Date.now(), name, icon:'📁'});
+  saveFolders(); inp.value='';
+  renderFolderList(); renderFolderNav();
+  showToast(`Folder "${name}" created`);
+};
+document.getElementById('new-folder-input').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('create-folder-btn').click(); });
+
+/* ══════════════════════════════════════════
+   COLOR PICKER SETUP
+══════════════════════════════════════════ */
+function buildColorPicker() {
+  const wrap = document.getElementById('note-color-picker');
+  wrap.innerHTML='';
+  NOTE_COLORS.forEach(c=>{
+    const sw=document.createElement('div');
+    sw.className='color-swatch'+(c.hex===''?'none':'');
+    sw.title=c.name;
+    if (c.hex) sw.style.background=c.hex;
+    sw.dataset.color=c.hex;
+    sw.onclick=()=>{
+      const note=notes.find(n=>n.id===activeId); if(!note)return;
+      note.color=c.hex; onEdit();
+      wrap.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+      sw.classList.add('selected');
+      applyEditorCoverColor(c.hex);
+    };
+    wrap.appendChild(sw);
+  });
+}
+buildColorPicker();
+
+function applyEditorCoverColor(hex) {
+  const strip = document.getElementById('editor-cover-strip');
+  strip.style.background = hex||'transparent';
+  strip.style.height = hex ? '5px' : '0';
+}
+
+function syncColorPicker(hex) {
+  document.querySelectorAll('#note-color-picker .color-swatch').forEach(s=>{
+    s.classList.toggle('selected', s.dataset.color===hex);
+  });
+  applyEditorCoverColor(hex);
+}
+
+/* ══════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════ */
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let list = notes.filter(n=>{
+    const mf = filterFolder==='' || n.folder===filterFolder;
+    const mt = !filterTag || n.tag===filterTag;
+    const mq = !q || n.title.toLowerCase().includes(q) || (n.body||'').toLowerCase().includes(q);
+    return mf && mt && mq;
+  });
+  // Pinned first, then by date
+  list.sort((a,b)=>{
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return b.updated - a.updated;
+  });
+  return list;
+}
+
+function renderTags() {
+  const wrap=document.getElementById('tag-list');
+  const used=new Set(notes.map(n=>n.tag).filter(Boolean));
+  wrap.innerHTML='';
+  const all=document.createElement('button');
+  all.className='tag-btn'+(!filterTag?' active':'');
+  all.textContent='All';
+  all.onclick=()=>{filterTag='';renderAll();};
+  wrap.appendChild(all);
+  ['work','personal','ideas','todo'].filter(t=>used.has(t)).forEach(t=>{
+    const b=document.createElement('button');
+    b.className='tag-btn'+(filterTag===t?' active':'');
+    b.textContent=t[0].toUpperCase()+t.slice(1);
+    b.onclick=()=>{filterTag=filterTag===t?'':t;renderAll();};
+    wrap.appendChild(b);
+  });
+}
+
+function renderList() {
+  const list=document.getElementById('note-list');
+  const filtered=getFiltered();
+  document.getElementById('note-count').textContent=filtered.length+' note'+(filtered.length!==1?'s':'');
+  if(!filtered.length){list.innerHTML='<div class="no-notes">No notes found</div>';return;}
+  list.innerHTML='';
+  filtered.forEach(n=>{
+    const div=document.createElement('div');
+    div.className='note-item'+(n.id===activeId?' active':'');
+    div.onclick=()=>{activeId=n.id;renderList();renderEditor();};
+    const tc=n.tag?TAG_COLORS[n.tag]:null;
+    const folderName=folders.find(f=>f.id===n.folder)?.name||'';
+    const preview=(n.body||'').replace(/[#*`>~\[\]]/g,'').replace(/\n/g,' ').slice(0,60);
+    div.innerHTML=`
+      ${n.color?`<div class="note-item-cover visible" style="background:${n.color}"></div>`:`<div class="note-item-cover"></div>`}
+      <div class="note-item-top">
+        ${n.pinned?`<span class="note-pin-icon">📌</span>`:''}
+        ${n.emoji?`<span style="font-size:13px">${n.emoji}</span>`:''}
+        <div class="note-item-title">${esc(n.title||'Untitled')}</div>
+      </div>
+      <div class="note-item-preview">${esc(preview||'No content')}</div>
+      <div class="note-item-meta">
+        ${tc?`<span class="note-tag-badge" style="background:${tc.bg};color:${tc.color}">${n.tag}</span>`:''}
+        ${folderName?`<span class="note-folder-badge">📁${esc(folderName)}</span>`:''}
+        <span class="note-date">${fmt(n.updated)}</span>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderEditor() {
+  const toolbar  = document.getElementById('editor-toolbar');
+  const metaRow  = document.getElementById('note-meta-row');
+  const mdBar    = document.getElementById('md-toolbar');
+  const tabBar   = document.getElementById('tab-bar');
+  const empty    = document.getElementById('empty-state');
+  const body     = document.getElementById('body-input');
+  const preview  = document.getElementById('preview-area');
+  const note     = notes.find(n=>n.id===activeId);
+
+  if (!note) {
+    toolbar.style.display='none'; metaRow.style.display='none';
+    mdBar.style.display='none';   tabBar.style.display='none';
+    empty.style.display='flex';   body.style.display='none';
+    preview.classList.remove('visible'); applyEditorCoverColor('');
+    return;
+  }
+  toolbar.style.display='flex'; metaRow.style.display='flex';
+  mdBar.style.display='flex';   tabBar.style.display='flex';
+  empty.style.display='none';
+
+  document.getElementById('title-input').value    = note.title||'';
+  document.getElementById('note-tag-select').value= note.tag||'';
+  document.getElementById('note-emoji-input').value=note.emoji||'';
+  document.getElementById('note-folder-select').value=note.folder||'';
+  document.getElementById('save-indicator').textContent = '';
+
+  // Pin button
+  const pinBtn=document.getElementById('pin-btn');
+  pinBtn.textContent = note.pinned?'📌 Pinned':'📌 Pin';
+  pinBtn.classList.toggle('pinned', !!note.pinned);
+
+  // Color
+  syncColorPicker(note.color||'');
+
+  if (isPreview) {
+    body.style.display='none';
+    preview.innerHTML=parseMarkdown(note.body||'');
+    preview.classList.add('visible');
+  } else {
+    body.style.display='block';
+    preview.classList.remove('visible');
+    body.value=note.body||'';
+  }
+}
+
+function renderAll() { renderTags(); renderFolderNav(); renderList(); renderEditor(); }
+
+/* ── Sidebar note count ── */
+Object.defineProperty(document.getElementById('note-count'), 'textContent', {
+  set(v) { this._text=v; },
+  get() { return this._text||''; }
+});
+// Use real element
+const noteCountEl = document.getElementById('note-count');
+
+function renderListFull() {
+  const filtered=getFiltered();
+  noteCountEl.textContent=filtered.length+' note'+(filtered.length!==1?'s':'');
+  renderList();
+}
+
+/* ══════════════════════════════════════════
+   NOTE ACTIONS
+══════════════════════════════════════════ */
+document.getElementById('new-btn').onclick=()=>{
+  const n={id:Date.now(),title:'',body:'',tag:'',folder:filterFolder||'',pinned:false,color:'',emoji:'',updated:Date.now()};
+  notes.unshift(n); activeId=n.id; persist(); renderAll();
+  setTimeout(()=>document.getElementById('title-input').focus(),50);
+};
+
+document.getElementById('delete-btn').onclick=()=>{
+  if(!activeId||!confirm('Delete this note?'))return;
+  notes=notes.filter(n=>n.id!==activeId);
+  activeId=notes[0]?.id||null; persist(); renderAll();
+  scheduleAutoSync();
+};
+
+document.getElementById('pin-btn').onclick=()=>{
+  const note=notes.find(n=>n.id===activeId); if(!note)return;
+  note.pinned=!note.pinned;
+  const btn=document.getElementById('pin-btn');
+  btn.textContent=note.pinned?'📌 Pinned':'📌 Pin';
+  btn.classList.toggle('pinned',note.pinned);
+  persist(); renderList(); scheduleAutoSync();
+  showToast(note.pinned?'Note pinned ✅':'Note unpinned');
+};
+
+document.getElementById('note-emoji-input').addEventListener('input',onEdit);
+document.getElementById('note-folder-select').addEventListener('change',e=>{
+  const note=notes.find(n=>n.id===activeId); if(!note)return;
+  note.folder=e.target.value; persist(); renderList(); scheduleAutoSync();
+});
+
+let localSaveTimer=null;
+function onEdit() {
+  const note=notes.find(n=>n.id===activeId); if(!note)return;
+  note.title   = document.getElementById('title-input').value;
+  note.body    = document.getElementById('body-input').value;
+  note.tag     = document.getElementById('note-tag-select').value;
+  note.emoji   = document.getElementById('note-emoji-input').value;
+  note.updated = Date.now();
+  clearTimeout(localSaveTimer);
+  localSaveTimer=setTimeout(()=>{
+    persist(); renderTags(); renderList();
+    document.getElementById('save-indicator').textContent='💾 Saved';
+    setTimeout(()=>{ document.getElementById('save-indicator').textContent=''; },1200);
+  },600);
+  scheduleAutoSync();
+}
+
+document.getElementById('title-input').addEventListener('input',onEdit);
+document.getElementById('body-input').addEventListener('input',()=>{
+  onEdit();
+  if(isPreview){
+    const note=notes.find(n=>n.id===activeId);
+    document.getElementById('preview-area').innerHTML=note?parseMarkdown(note.body||''):'';
+  }
+});
+document.getElementById('note-tag-select').addEventListener('change',onEdit);
+document.getElementById('search').addEventListener('input',renderAll);
+
+/* ══════════════════════════════════════════
+   AUTO SYNC (5s debounce)
+══════════════════════════════════════════ */
+function scheduleAutoSync() {
+  if(!ghIsConfigured())return;
+  clearTimeout(autoSyncTimer);
+  startSyncBar();
+  setSyncStatus('syncing','⟳ Syncing in 5s…');
+  autoSyncTimer=setTimeout(async()=>{
+    if(isSyncing)return;
+    isSyncing=true;
+    try{
+      await ghPushCore();
+      isDirty=false; loadedFrom=`GitHub (${ghConfig.user}/${ghConfig.repo})`;
+      updateStatus(); completeSyncBar(true);
+      setSyncStatus('ok','✅ Auto-synced'); setTimeout(syncStatusIdle,2500);
+    }catch{
+      completeSyncBar(false);
+      setSyncStatus('err','❌ Sync failed'); setTimeout(syncStatusIdle,3000);
+    }finally{isSyncing=false;}
+  },AUTO_SYNC);
+}
+
+function startSyncBar(){
+  syncBarProg=0;
+  const fill=document.getElementById('sync-bar-fill');
+  fill.style.width='0%'; fill.classList.add('active'); fill.style.background='var(--accent)';
+  clearInterval(syncBarTimer);
+  syncBarTimer=setInterval(()=>{ syncBarProg=Math.min(syncBarProg+100/(AUTO_SYNC/100),95); fill.style.width=syncBarProg+'%'; },100);
+}
+function completeSyncBar(ok){
+  clearInterval(syncBarTimer);
+  const fill=document.getElementById('sync-bar-fill');
+  fill.style.width='100%'; fill.style.background=ok?'var(--green)':'#A32D2D';
+  setTimeout(()=>{ fill.style.width='0%'; fill.classList.remove('active'); fill.style.background='var(--accent)'; },600);
+}
+
+/* ══════════════════════════════════════════
+   GITHUB API
+══════════════════════════════════════════ */
+function ghHeaders(){return{'Authorization':`token ${ghConfig.token}`,'Content-Type':'application/json','Accept':'application/vnd.github+json'};}
+function ghFileUrl(){return`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.path}`;}
+
+async function ghPushCore(){
+  const content=btoa(unescape(encodeURIComponent(notesToJSON(notes))));
+  let sha=null;
+  try{const c=await fetch(ghFileUrl(),{headers:ghHeaders()});if(c.ok){const d=await c.json();sha=d.sha;}}catch{}
+  const body={message:`Auto-sync ${new Date().toLocaleString()}`,content};
+  if(sha)body.sha=sha;
+  const res=await fetch(ghFileUrl(),{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+  if(!res.ok){const e=await res.json();throw new Error(e.message||`HTTP ${res.status}`);}
+}
+async function ghPullCore(){
+  const res=await fetch(ghFileUrl(),{headers:ghHeaders()});
+  if(!res.ok){const e=await res.json();throw new Error(e.message||`HTTP ${res.status}`);}
+  const data=await res.json();
+  const text=decodeURIComponent(escape(atob(data.content)));
+  const loaded=jsonToData(text);
+  if(!loaded.length)throw new Error('No notes found');
+  notes=loaded; activeId=notes.find(n=>n.id===activeId)?activeId:notes[0]?.id||null;
+  isDirty=false; loadedFrom=`GitHub (${ghConfig.user}/${ghConfig.repo})`;
+  localStorage.setItem(LS_NOTES,JSON.stringify(notes));
+}
+async function ghPullSilent(){await ghPullCore();renderAll();updateStatus();}
+
+async function ghPush(){
+  if(isSyncing)return; isSyncing=true;
+  const btn=document.getElementById('gh-push-btn'); btn.disabled=true; btn.textContent='⬆ Pushing…';
+  setSyncStatus('syncing','⟳ Pushing…');
+  try{await ghPushCore();isDirty=false;loadedFrom=`GitHub (${ghConfig.user}/${ghConfig.repo})`;updateStatus();setSyncStatus('ok','✅ Pushed');showToast(`✅ Pushed to ${ghConfig.user}/${ghConfig.repo}`);setTimeout(syncStatusIdle,3000);}
+  catch(e){setSyncStatus('err','❌ Push failed');showToast(`❌ Push failed: ${e.message}`,4000);setTimeout(syncStatusIdle,4000);}
+  finally{isSyncing=false;btn.disabled=false;btn.textContent='⬆ Push';updateStatus();}
+}
+async function ghPull(){
+  if(isSyncing)return; isSyncing=true;
+  const btn=document.getElementById('gh-pull-btn'); btn.disabled=true; btn.textContent='⬇ Pulling…';
+  setSyncStatus('syncing','⟳ Pulling…');
+  try{await ghPullCore();renderAll();updateStatus();setSyncStatus('ok',`✅ Pulled ${notes.length}`);showToast(`✅ Pulled ${notes.length} notes`);setTimeout(syncStatusIdle,3000);}
+  catch(e){setSyncStatus('err','❌ Pull failed');showToast(`❌ Pull failed: ${e.message}`,4000);setTimeout(syncStatusIdle,4000);}
+  finally{isSyncing=false;btn.disabled=false;btn.textContent='⬇ Pull';updateStatus();}
+}
+async function ghTest(){
+  const token=document.getElementById('gh-token').value.trim(),user=document.getElementById('gh-user').value.trim(),repo=document.getElementById('gh-repo').value.trim();
+  const st=document.getElementById('gh-conn-status');
+  if(!token||!user||!repo){st.className='err';st.textContent='Fill all fields.';return;}
+  st.className='';st.textContent='Testing…';
+  try{
+    const res=await fetch(`https://api.github.com/repos/${user}/${repo}`,{headers:{'Authorization':`token ${token}`,'Accept':'application/vnd.github+json'}});
+    if(res.ok){const d=await res.json();st.className='ok';st.textContent=`✅ "${d.full_name}" (${d.private?'private':'public'})`;}
+    else{const e=await res.json();st.className='err';st.textContent=`❌ ${e.message}`;}
+  }catch(e){st.className='err';st.textContent=`❌ ${e.message}`;}
+}
+
+document.getElementById('gh-push-btn').onclick=ghPush;
+document.getElementById('gh-pull-btn').onclick=ghPull;
+document.getElementById('gh-settings-btn').onclick=()=>{
+  document.getElementById('gh-token').value=ghConfig.token||'';
+  document.getElementById('gh-user').value=ghConfig.user||'';
+  document.getElementById('gh-repo').value=ghConfig.repo||'';
+  document.getElementById('gh-path').value=ghConfig.path||'notes-data.json';
+  document.getElementById('gh-conn-status').textContent='';
+  document.getElementById('gh-modal-wrap').classList.add('open');
+};
+document.getElementById('gh-cancel-btn').onclick=()=>document.getElementById('gh-modal-wrap').classList.remove('open');
+document.getElementById('gh-modal-wrap').onclick=e=>{if(e.target===document.getElementById('gh-modal-wrap'))document.getElementById('gh-modal-wrap').classList.remove('open');};
+document.getElementById('gh-test-btn').onclick=ghTest;
+document.getElementById('gh-save-btn').onclick=()=>{
+  const p=document.getElementById('gh-path').value.trim()||'notes-data.json';
+  ghConfig={token:document.getElementById('gh-token').value.trim(),user:document.getElementById('gh-user').value.trim(),repo:document.getElementById('gh-repo').value.trim(),path:p.endsWith('.json')?p:p+'.json'};
+  localStorage.setItem(LS_GH,JSON.stringify(ghConfig));
+  document.getElementById('gh-modal-wrap').classList.remove('open');
+  updateStatus();syncStatusIdle();showToast('GitHub settings saved');
+};
+
+/* ══════════════════════════════════════════
+   LOCAL FILE SAVE / LOAD
+══════════════════════════════════════════ */
+document.getElementById('save-data-btn').onclick=()=>{
+  const blob=new Blob([notesToJSON(notes)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='notes-data.json';a.click();URL.revokeObjectURL(a.href);
+  isDirty=false;loadedFrom=loadedFrom||'notes-data.json';updateStatus();showToast('Saved as notes-data.json');
+};
+document.getElementById('load-data-btn').onclick=()=>document.getElementById('load-data-input').click();
+document.getElementById('load-data-input').onchange=e=>{if(e.target.files[0])loadLocalFile(e.target.files[0]);e.target.value='';};
+function loadLocalFile(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const loaded=jsonToData(e.target.result);
+      if(!loaded.length)throw new Error('No notes found.');
+      notes=loaded;activeId=notes[0]?.id||null;loadedFrom=file.name;isDirty=false;
+      localStorage.setItem(LS_NOTES,JSON.stringify(notes));renderAll();updateStatus();
+      showToast(`Loaded ${notes.length} notes from "${file.name}"`);
+    }catch(err){alert('Could not load file.\n\n'+err.message);}
+  };r.readAsText(file);
+}
+
+/* ── Import text files as notes ── */
+function titleFromFilename(n){return n.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
+function processTextFile(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      let body=e.target.result;
+      if(file.name.endsWith('.json')){try{body=JSON.stringify(JSON.parse(body),null,2);}catch{}}
+      res({id:Date.now()+Math.random(),title:titleFromFilename(file.name),body:body.trimEnd(),tag:'',folder:filterFolder||'',pinned:false,color:'',emoji:'',updated:file.lastModified||Date.now(),imported:true,sourceFile:file.name});
+    };r.onerror=()=>res(null);r.readAsText(file);
+  });
+}
+async function importTextFiles(files){
+  const imported=(await Promise.all(Array.from(files).map(processTextFile))).filter(Boolean);
+  if(!imported.length)return;
+  imported.forEach(n=>notes.unshift(n));activeId=imported[0].id;persist();renderAll();
+  showToast(imported.length===1?`"${imported[0].title}" imported`:`${imported.length} files imported`);
+}
+document.getElementById('import-txt-btn').onclick=()=>document.getElementById('import-txt-input').click();
+document.getElementById('import-txt-input').onchange=e=>{importTextFiles(e.target.files);e.target.value='';};
+
+/* ── Drag & drop ── */
+const overlay=document.getElementById('drop-overlay'),dropLabel=document.getElementById('drop-label');
+let dc=0;
+document.addEventListener('dragenter',e=>{e.preventDefault();dc++;const fs=e.dataTransfer?.items?Array.from(e.dataTransfer.items):[];dropLabel.textContent=fs.some(i=>i.getAsFile?.()?.name?.endsWith('.json'))?'Drop to restore notes':'Drop to import as note';overlay.classList.add('visible');});
+document.addEventListener('dragleave',()=>{dc--;if(dc<=0){dc=0;overlay.classList.remove('visible');}});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{
+  e.preventDefault();dc=0;overlay.classList.remove('visible');
+  const all=Array.from(e.dataTransfer.files);
+  const jsonFiles=all.filter(f=>f.name.endsWith('.json'));
+  const txtFiles=all.filter(f=>!f.name.endsWith('.json'));
+  if(jsonFiles.length)loadLocalFile(jsonFiles[0]);
+  if(txtFiles.length)importTextFiles(txtFiles);
+});
+
+window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue='';}});
+
+/* ── START ── */
+bootstrap();
+syncStatusIdle();
+</script>
+</body>
+</html>
