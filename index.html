@@ -177,6 +177,76 @@ input[type=file]{display:none}
 #sbar{position:fixed;bottom:0;left:0;right:0;height:2px;z-index:600}
 #sbarf{height:100%;background:var(--ac);width:0%;transition:width .1s linear;opacity:0}
 #sbarf.act{opacity:1}
+  @media (max-width: 600px) {
+
+  #app {
+    flex-direction: column;
+    position: relative;
+  }
+
+  #sb {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    transform: translateX(0);
+    transition: 0.25s ease;
+    z-index: 10;
+  }
+
+  #sb.hidden-mobile {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  #ed {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    transform: translateX(100%);
+    transition: 0.25s ease;
+  }
+
+  #ed.visible-mobile {
+    transform: translateX(0);
+  }
+
+  #mobile-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: var(--bg2);
+    border-top: 0.5px solid var(--bm);
+    z-index: 100;
+  }
+
+  .mob-tab {
+    flex: 1;
+    font-size: 11px;
+    border: none;
+    background: transparent;
+    color: var(--t3);
+  }
+
+  .mob-tab.active {
+    color: var(--ac);
+  }
+
+  body {
+    padding-bottom: 52px;
+  }
+
+  #toast {
+    bottom: 64px;
+  }
+}
+
+/* hide tabs on desktop */
+#mobile-tabs {
+  display: none;
+}
 </style>
 </head>
 <body>
@@ -864,58 +934,92 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 
 //boot();
    // Start
-  bootstrap();
-  updateSyncStatusIdle();
-
+  boot();
+  ssIdle();
+//------------------------------------------------------------------------------------------------------------------------------------------
   /* ── Mobile tab switching ── */
-  function isMobile() { return window.innerWidth <= 600; }
+/* ── Mobile tab switching (FINAL STABLE) ── */
+function isMobile() { 
+  return window.innerWidth <= 600; 
+}
 
-  function switchMobileTab(tab) {
-    if (!isMobile()) return;
-    const sidebar = document.getElementById('sidebar');
-    const editor  = document.getElementById('editor');
-    const tabNotes  = document.getElementById('tab-notes');
-    const tabEditor = document.getElementById('tab-editor');
-    if (tab === 'notes') {
-      sidebar.classList.remove('hidden-mobile');
-      editor.classList.remove('visible-mobile');
-      tabNotes.classList.add('active');
-      tabEditor.classList.remove('active');
-    } else {
-      sidebar.classList.add('hidden-mobile');
-      editor.classList.add('visible-mobile');
-      tabNotes.classList.remove('active');
-      tabEditor.classList.add('active');
-    }
+function switchMobileTab(tab) {
+  if (!isMobile()) return;
+
+  const sidebar = document.getElementById('sb');
+  const editor  = document.getElementById('ed');
+  const tabNotes  = document.getElementById('tab-notes');
+  const tabEditor = document.getElementById('tab-editor');
+
+  if (!sidebar || !editor) return; // safety
+
+  if (tab === 'notes') {
+    sidebar.classList.remove('hidden-mobile');
+    editor.classList.remove('visible-mobile');
+
+    tabNotes?.classList.add('active');
+    tabEditor?.classList.remove('active');
+  } else {
+    sidebar.classList.add('hidden-mobile');
+    editor.classList.add('visible-mobile');
+
+    tabNotes?.classList.remove('active');
+    tabEditor?.classList.add('active');
   }
-  window.switchMobileTab = switchMobileTab;
+}
 
-  // Auto-switch to editor when a note is tapped on mobile
-  const _origRenderList = renderList;
-  document.getElementById('note-list').addEventListener('click', e => {
-    if (isMobile() && e.target.closest('.note-item')) {
-      setTimeout(() => switchMobileTab('editor'), 50);
-    }
-  });
+window.switchMobileTab = switchMobileTab;
 
-  // Auto-switch to editor when New Note is tapped on mobile
-  const origNewBtn = document.getElementById('new-btn').onclick;
-  document.getElementById('new-btn').onclick = function() {
-    if (origNewBtn) origNewBtn.call(this);
-    if (isMobile()) setTimeout(() => switchMobileTab('editor'), 80);
-  };
+/* Wait until DOM ready */
+document.addEventListener('DOMContentLoaded', () => {
 
-  // Initialize mobile layout on load
+  const nlist = document.getElementById('nlist');
+  const nbtn  = document.getElementById('nbtn');
+
+  /* Auto-switch when note clicked */
+  if (nlist) {
+    nlist.addEventListener('click', e => {
+      if (isMobile() && e.target.closest('.ni')) {
+        setTimeout(() => switchMobileTab('editor'), 50);
+      }
+    });
+  }
+
+  /* Auto-switch when NEW note clicked */
+  if (nbtn) {
+    nbtn.addEventListener('click', () => {
+      if (isMobile()) setTimeout(() => switchMobileTab('editor'), 80);
+    });
+  }
+
+  /* Initial mobile state */
   if (isMobile()) {
     switchMobileTab('notes');
+  } 
+
+});
+
+/* Reset when back to desktop */
+window.addEventListener('resize', () => {
+  const sb = document.getElementById('sb');
+  const ed = document.getElementById('ed');
+
+  if (!sb || !ed) return;
+
+  if (!isMobile()) {
+    sb.classList.remove('hidden-mobile');
+    ed.classList.remove('visible-mobile');
+  } else {
+    switchMobileTab('notes');
   }
-  window.addEventListener('resize', () => {
-    if (!isMobile()) {
-      // Reset transforms on desktop
-      document.getElementById('sidebar').classList.remove('hidden-mobile');
-      document.getElementById('editor').classList.remove('visible-mobile');
-    }
-      });
+});
 </script>
+  <!-- ✅ Mobile Tabs (PASTE HERE) -->
+<div id="mobile-tabs">
+  <button class="mob-tab active" id="tab-notes" onclick="switchMobileTab('notes')">📋 Notes</button>
+  <button class="mob-tab" id="tab-editor" onclick="switchMobileTab('editor')">✏️ Editor</button>
+  <button class="mob-tab" onclick="document.getElementById('ghsbtn').click()">🔄 Sync</button>
+</div>
+
 </body>
 </html>
