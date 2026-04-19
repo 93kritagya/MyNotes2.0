@@ -400,7 +400,7 @@
         <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
       </svg>
       <p>Select a note or create a new one</p>
-      <p class="sub">Auto-syncs to GitHub every 5 seconds while editing</p>
+      <p class="sub">Auto-syncs to GitHub every 2 seconds while editing</p>
     </div>
     <textarea id="body-input" placeholder="Start writing…" style="display:none"></textarea>
   </div>
@@ -413,7 +413,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
       GitHub Sync Setup
     </h2>
-    <p>Notes are stored as <strong>JSON</strong> in your GitHub repo and auto-synced every 5 seconds while editing.</p>
+    <p>Notes are stored as <strong>JSON</strong> in your GitHub repo and auto-synced every 2 seconds while editing.</p>
     <div>
       <label>Personal Access Token (PAT)</label>
       <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
@@ -430,7 +430,7 @@
       🔑 Get token at <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a>
       → No expiry → tick <strong>repo</strong> → Generate → copy.<br><br>
       ✅ On app open: auto-pulls latest notes from GitHub.<br>
-      ✅ While editing: auto-pushes every 5 seconds.
+      ✅ While editing: auto-pushes every 2 seconds.
     </div>
     <div id="gh-conn-status"></div>
     <div id="gh-modal-btns">
@@ -507,11 +507,11 @@
   let ghConfig = JSON.parse(localStorage.getItem(LS_GH) || 'null') || { token:'', user:'', repo:'', path:'notes-data.json' };
 
   // Auto-sync state
-  let autoSyncTimer   = null;   // 5-second debounce timer
+  let autoSyncTimer   = null;   // 2-second debounce timer
   let syncBarTimer    = null;   // progress bar animation
   let syncBarProgress = 0;
   let isSyncing       = false;
-  const AUTO_SYNC_DELAY = 2000; // 5 seconds
+  const AUTO_SYNC_DELAY = 2000; // 2 seconds
 
   /* ── Boot: load from localStorage, then auto-pull from GitHub ── */
   async function bootstrap() {
@@ -542,7 +542,7 @@
   function getDefaultNotes() {
     return [
       { id:1, title:'Welcome to My Notes',
-        body:'Your notes app — full screen, auto GitHub sync.\n\n── What\'s new ──\n\n✅ Data stored as JSON (notes-data.json in your repo)\n✅ Full screen on PC/laptop\n✅ Auto-pulls from GitHub when app opens\n✅ Auto-pushes to GitHub every 5 seconds while editing\n\nJust set up GitHub (⚙ GitHub button) and everything syncs automatically!',
+        body:'Your notes app — full screen, auto GitHub sync.\n\n── What\'s new ──\n\n✅ Data stored as JSON (notes-data.json in your repo)\n✅ Full screen on PC/laptop\n✅ Auto-pulls from GitHub when app opens\n✅ Auto-pushes to GitHub every 2 seconds while editing\n\nJust set up GitHub (⚙ GitHub button) and everything syncs automatically!',
         tag:'personal', updated: Date.now()-60000 },
       { id:2, title:'Ideas for the weekend',
         body:'Go for a long walk.\nTry that new coffee place.\nFinish the book on the shelf.',
@@ -712,7 +712,7 @@
     if (!ghIsConfigured()) return;
     clearTimeout(autoSyncTimer);
     startSyncBar();
-    setSyncStatus('syncing', `⟳ Syncing in 5s…`);
+    setSyncStatus('syncing', `⟳ Syncing in 2s…`);
     autoSyncTimer = setTimeout(async () => {
       if (isSyncing) return;
       isSyncing = true;
